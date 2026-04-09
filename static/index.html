@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JoyAI-Image Web</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <strong>JoyAI-Image</strong>
+        <span class="muted">local web UI</span>
+      </div>
+      <div id="statusPill" class="status status-offline">Connecting…</div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-chat">
+        <h2>Prompt</h2>
+        <div id="chatLog" class="chat-log"></div>
+        <form id="chatForm" class="chat-form">
+          <textarea id="promptInput" rows="4" placeholder="Describe what to generate or edit..." required></textarea>
+          <div class="chat-actions">
+            <button type="submit" id="runBtn" class="btn btn-primary">Run</button>
+            <span id="elapsed" class="muted">Ready</span>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel-workbench">
+        <h2>Image I/O</h2>
+        <div class="image-grid">
+          <article class="image-card">
+            <h3>Input</h3>
+            <label for="imageInput" class="upload-slot">
+              <span id="inputPlaceholder" class="placeholder">Drop image or click to upload</span>
+              <img id="inputImage" alt="Input preview" hidden />
+              <input id="imageInput" type="file" accept="image/*" hidden />
+            </label>
+            <div class="image-actions">
+              <button type="button" id="clearInputBtn" class="btn btn-secondary" disabled>Clear</button>
+            </div>
+          </article>
+
+          <article class="image-card">
+            <h3>Output</h3>
+            <div class="output-slot">
+              <div id="outputPlaceholder" class="placeholder">Output will appear here</div>
+              <img id="outputImage" alt="Generated output" hidden />
+            </div>
+            <div class="image-actions">
+              <button type="button" id="useAsInputBtn" class="btn btn-secondary" disabled>Use output as input</button>
+            </div>
+          </article>
+        </div>
+
+        <section class="history">
+          <h3>Recent outputs</h3>
+          <div id="historyGrid" class="history-grid">No outputs yet.</div>
+        </section>
+      </section>
+
+      <aside class="panel panel-controls">
+        <h2>Controls</h2>
+        <label class="control">
+          <span>Steps</span>
+          <div class="control-row">
+            <input id="stepsInput" type="range" min="1" max="120" step="1" value="50" />
+            <output id="stepsValue">50</output>
+          </div>
+        </label>
+        <label class="control">
+          <span>Guidance Scale</span>
+          <div class="control-row">
+            <input id="guidanceInput" type="range" min="1" max="20" step="0.5" value="5" />
+            <output id="guidanceValue">5.0</output>
+          </div>
+        </label>
+        <label class="control">
+          <span>Seed</span>
+          <div class="control-row">
+            <input id="seedInput" type="number" min="0" value="42" />
+            <button type="button" id="randomSeedBtn" class="btn btn-secondary">Random</button>
+          </div>
+        </label>
+        <label class="control">
+          <span>Negative prompt</span>
+          <textarea id="negPromptInput" rows="2" placeholder="Optional negative prompt"></textarea>
+        </label>
+        <label class="control">
+          <span>Base size</span>
+          <select id="baseSizeInput">
+            <option>256</option>
+            <option>512</option>
+            <option>768</option>
+            <option selected>1024</option>
+          </select>
+        </label>
+        <label class="control">
+          <span>Height</span>
+          <input id="heightInput" type="number" min="128" max="2048" value="1024" />
+        </label>
+        <label class="control">
+          <span>Width</span>
+          <input id="widthInput" type="number" min="128" max="2048" value="1024" />
+        </label>
+        <label class="control checkbox">
+          <input id="rewritePromptInput" type="checkbox" />
+          <span>Rewrite prompt (LLM)</span>
+        </label>
+      </aside>
+    </main>
+  </div>
+
+  <script src="/static/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+:root {
+  --bg: #f5f6fb;
+  --panel: #ffffffcc;
+  --line: #d4d9e6;
+  --text: #192035;
+  --muted: #5f6882;
+  --accent: #1b56ff;
+  --accent-soft: #e8ecff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 10%, #ffffff, transparent 40%),
+    radial-gradient(circle at 85% 20%, #edf2ff, transparent 35%),
+    var(--bg);
+}
+
+.app-shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.status {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.status-online {
+  background: var(--accent-soft);
+  border-color: #bfd0ff;
+  color: #1c3d9a;
+}
+
+.status-error {
+  background: #ffe9e9;
+  border-color: #ffc4c4;
+  color: #8b1f2f;
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  align-items: start;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.panel h2,
+.panel h3 {
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+}
+
+.chat-log {
+  min-height: 10rem;
+  border: 1px dashed var(--line);
+  padding: 0.7rem;
+  border-radius: 10px;
+  margin-bottom: 0.8rem;
+  overflow: auto;
+  background: #fff;
+  color: var(--muted);
+}
+
+.chat-form textarea,
+.control textarea,
+.control input,
+.control select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-family: inherit;
+}
+
+.chat-form textarea,
+.control textarea {
+  resize: vertical;
+}
+
+.chat-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:hover {
+  opacity: 0.92;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #eef2ff;
+  color: #27314f;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.image-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.upload-slot,
+.output-slot {
+  height: 250px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  overflow: hidden;
+  position: relative;
+  background: #fafbff;
+}
+
+.output-slot {
+  grid-template-areas: "content";
+}
+
+.placeholder {
+  color: var(--muted);
+  text-align: center;
+}
+
+.upload-slot img,
+.output-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.history {
+  margin-top: 0.9rem;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.55rem;
+}
+
+.history-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.history-item img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+}
+
+.history-item p {
+  margin: 0.25rem;
+  font-size: 0.72rem;
+  color: #49526f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.8rem;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-row output {
+  min-width: 3rem;
+}
+
+.checkbox {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.checkbox input {
+  margin-right: 0.45rem;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .image-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-slot,
+  .output-slot {
+    height: 220px;
+  }
+}
