@@ -31,6 +31,7 @@ const cameraPitchInput = document.getElementById("cameraPitchInput");
 const cameraZoomInput = document.getElementById("cameraZoomInput");
 const spatialPromptPreview = document.getElementById("spatialPromptPreview");
 const applySpatialPromptBtn = document.getElementById("applySpatialPromptBtn");
+const spatialTemplateGroup = document.getElementById("spatialTemplateGroup");
 
 const uploadSlot = document.getElementById("uploadSlot");
 const uploadInputBtn = document.getElementById("uploadInputBtn");
@@ -47,7 +48,20 @@ const clearInputBtn = document.getElementById("clearInputBtn");
 const outputImage = document.getElementById("outputImage");
 const outputPlaceholder = document.getElementById("outputPlaceholder");
 const useAsInputBtn = document.getElementById("useAsInputBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 const historyGrid = document.getElementById("historyGrid");
+
+function setOutputUrl(url) {
+  currentOutputUrl = url;
+  outputImage.src = url;
+  outputImage.hidden = false;
+  outputPlaceholder.hidden = true;
+  useAsInputBtn.disabled = false;
+  if (downloadBtn) {
+    downloadBtn.href = url;
+    downloadBtn.removeAttribute("aria-disabled");
+  }
+}
 
 let isBusy = false;
 let currentOutputUrl = null;
@@ -139,7 +153,17 @@ function updateGuideUI() {
   toggleGuideBtn.disabled = !moveMode || !hasImage || isBusy;
   clearGuideBtn.disabled = !moveMode || !guideRect || isBusy;
   clearInputBtn.disabled = !hasImage || isBusy;
-  toggleGuideBtn.textContent = guideToolEnabled ? "Stop drawing" : "Draw red box";
+
+  // Preserve the inline SVG — update only class, aria-label and title.
+  toggleGuideBtn.classList.toggle("is-drawing", guideToolEnabled);
+  const toggleLabel = guideToolEnabled ? "Stop drawing" : "Draw red box";
+  toggleGuideBtn.setAttribute("aria-label", toggleLabel);
+  toggleGuideBtn.setAttribute(
+    "title",
+    guideToolEnabled ? "Stop drawing — click to finish" : "Draw red destination box",
+  );
+  toggleGuideBtn.setAttribute("aria-pressed", guideToolEnabled ? "true" : "false");
+
   uploadSlot.classList.toggle("guide-active", guideToolEnabled && moveMode);
   guideStatus.textContent = getGuideStatusText();
   if (!guideCanvas.hidden) {
@@ -417,6 +441,7 @@ function updateSpatialUI() {
   spatialViewGroup.hidden = mode !== "rotate";
   spatialGuideHelp.hidden = mode !== "move";
   spatialCameraGroup.hidden = mode !== "camera";
+  spatialTemplateGroup.hidden = mode === "none";
 
   if (mode === "move") {
     spatialModeHelp.textContent =
@@ -463,14 +488,16 @@ function renderGpuTelemetry(data) {
   for (const gpu of data.gpus) {
     const card = document.createElement("article");
     card.className = "gpu-card";
+    card.title = `GPU ${gpu.index} — ${gpu.name}\nCompute: ${gpu.gpu_utilization}%\nVRAM: ${(gpu.memory_used_mib / 1024).toFixed(1)} / ${(gpu.memory_total_mib / 1024).toFixed(1)} GiB\nMem util: ${gpu.memory_utilization}%\nTemp: ${gpu.temperature_c}°C`;
+    card.style.setProperty("--_util", `${gpu.gpu_utilization}%`);
 
     const title = document.createElement("strong");
-    title.textContent = `GPU ${gpu.index} • ${gpu.name}`;
+    title.textContent = `GPU ${gpu.index}`;
 
     const metrics = document.createElement("div");
     metrics.className = "gpu-metrics";
     metrics.innerHTML = `
-      <div><span>Compute</span>${gpu.gpu_utilization}%</div>
+      <div><span>Util</span>${gpu.gpu_utilization}%</div>
       <div><span>VRAM</span>${(gpu.memory_used_mib / 1024).toFixed(1)} / ${(gpu.memory_total_mib / 1024).toFixed(1)} GiB</div>
       <div><span>Mem util</span>${gpu.memory_utilization}%</div>
       <div><span>Temp</span>${gpu.temperature_c}°C</div>
@@ -536,11 +563,7 @@ async function loadHistory() {
       card.appendChild(img);
       card.appendChild(caption);
       card.addEventListener("click", () => {
-        outputImage.src = item.url;
-        outputImage.hidden = false;
-        outputPlaceholder.hidden = true;
-        currentOutputUrl = item.url;
-        useAsInputBtn.disabled = false;
+        setOutputUrl(item.url);
       });
       historyGrid.appendChild(card);
     }
@@ -659,11 +682,7 @@ chatForm.addEventListener("submit", async (event) => {
       throw new Error(result?.detail || "Request failed.");
     }
 
-    outputImage.src = result.output_url;
-    outputImage.hidden = false;
-    outputPlaceholder.hidden = true;
-    currentOutputUrl = result.output_url;
-    useAsInputBtn.disabled = false;
+    setOutputUrl(result.output_url);
 
     pushLog(`Done (${result.elapsed_seconds}s): ${result.prompt}`);
     pushLog(`Saved output: ${result.output_url}`);

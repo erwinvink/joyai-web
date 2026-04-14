@@ -17,6 +17,7 @@ from typing import Any, Optional
 import torch
 import torch.distributed as dist
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +28,12 @@ DEFAULT_JOYAI_PATH = APP_DIR.parent / "JoyAI-Image"
 OUTPUTS_DIR = APP_DIR / "outputs"
 UPLOADS_DIR = APP_DIR / "uploads"
 STATIC_DIR = APP_DIR / "static"
+
+# Load secrets (e.g. OPENAI_API_KEY) from a .env file next to this script, if
+# present. Runs at import time so every code path — including JoyAI-Image's
+# load_settings() which does os.environ.get('OPENAI_API_KEY') — sees it.
+# .env is already in .gitignore. Shell-exported variables take precedence.
+load_dotenv(APP_DIR / ".env")
 
 
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)

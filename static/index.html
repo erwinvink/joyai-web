@@ -13,103 +13,99 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <span class="wordmark">JoyAI · <span class="wordmark-accent">Image</span></span>
+        <span class="wordmark">JoyAI <span class="wordmark-rule">—</span> <span class="wordmark-accent">Image</span></span>
         <span class="brand-sub">Local inference workbench</span>
       </div>
       <div class="topbar-meta">
+        <div id="gpuGrid" class="gpu-strip" aria-label="GPU telemetry">
+          <p class="gpu-loading">Polling telemetry…</p>
+        </div>
         <div id="statusPill" class="status status-offline">Connecting…</div>
       </div>
     </header>
 
-    <section class="panel gpu-panel">
-      <header class="panel-header">
-        <span class="section-num">001 — Telemetry</span>
-        <h2 class="section-title">GPU Telemetry</h2>
-        <p class="section-sub">Realtime <code>nvidia-smi</code> readings from the inference hosts.</p>
-      </header>
-      <div id="gpuGrid" class="gpu-grid">
-        <p class="muted">Loading GPU telemetry…</p>
-      </div>
-    </section>
-
     <main class="layout">
-      <section class="panel panel-chat">
-        <header class="panel-header">
-          <span class="section-num">002 — Prompt</span>
-          <h2 class="section-title">Compose</h2>
-          <p class="section-sub">Describe the edit, or the scene to synthesise from scratch.</p>
-        </header>
-        <div id="chatLog" class="chat-log" aria-live="polite"></div>
-        <form id="chatForm" class="chat-form">
-          <textarea id="promptInput" rows="4" placeholder="e.g. replace the sofa with a bronze velvet chaise, keep the morning light…" required></textarea>
-          <div class="chat-actions">
-            <button type="submit" id="runBtn" class="btn btn-primary">Run</button>
-            <span id="elapsed" class="status-label">Ready</span>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel panel-workbench">
-        <header class="panel-header">
-          <span class="section-num">003 — Workbench</span>
-          <h2 class="section-title">Image I/O</h2>
-          <p class="section-sub">Upload a reference, inspect the generated frame, and curate recent outputs.</p>
-        </header>
-        <div class="image-grid">
-          <article class="image-card">
-            <div class="card-heading">
-              <h3>Input</h3>
-              <span id="guideStatus" class="guide-status">Spatial guide inactive.</span>
-            </div>
-            <div id="uploadSlot" class="upload-slot" role="button" tabindex="0" aria-label="Upload input image">
-              <span id="inputPlaceholder" class="placeholder">Drop an image, or click to upload</span>
-              <div id="inputStage" class="input-stage" hidden>
-                <img id="inputImage" alt="Input preview" hidden />
-                <canvas id="guideCanvas" class="guide-canvas" hidden></canvas>
+      <section class="workbench">
+        <section class="canvas-block">
+          <div class="image-grid">
+            <article class="image-card image-card-input">
+              <div class="card-heading">
+                <h3>Input</h3>
+                <span id="guideStatus" class="guide-status">Spatial guide inactive.</span>
               </div>
-            </div>
-            <input id="imageInput" type="file" accept="image/*" hidden />
-            <div class="image-actions">
-              <button type="button" id="uploadInputBtn" class="btn btn-outline">Upload</button>
-              <button type="button" id="toggleGuideBtn" class="btn btn-outline" disabled>Draw red box</button>
-              <button type="button" id="clearGuideBtn" class="btn btn-outline" disabled>Clear box</button>
-              <button type="button" id="clearInputBtn" class="btn btn-outline" disabled>Clear</button>
-            </div>
-          </article>
+              <div id="uploadSlot" class="upload-slot" role="button" tabindex="0" aria-label="Upload input image">
+                <span id="inputPlaceholder" class="placeholder">
+                  <span class="placeholder-main">Drop an image</span>
+                  <span class="placeholder-sub">or click to upload</span>
+                </span>
+                <div id="inputStage" class="input-stage" hidden>
+                  <img id="inputImage" alt="Input preview" hidden />
+                  <canvas id="guideCanvas" class="guide-canvas" hidden></canvas>
+                </div>
+              </div>
+              <input id="imageInput" type="file" accept="image/*" hidden />
+              <div class="image-actions">
+                <button type="button" id="uploadInputBtn" class="btn btn-outline">Upload</button>
+                <span class="icon-group">
+                  <button type="button" id="toggleGuideBtn" class="btn btn-icon btn-outline" disabled aria-label="Draw red box" title="Draw red destination box">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <rect x="2.75" y="2.75" width="12.5" height="12.5" stroke-dasharray="2.2 1.6"/>
+                    </svg>
+                  </button>
+                  <button type="button" id="clearGuideBtn" class="btn btn-icon btn-outline" disabled aria-label="Clear red box" title="Clear the red box">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <rect x="2.75" y="2.75" width="12.5" height="12.5" stroke-dasharray="2.2 1.6"/>
+                      <path d="M5.5 5.5 l7 7"/>
+                    </svg>
+                  </button>
+                  <button type="button" id="clearInputBtn" class="btn btn-icon btn-outline" disabled aria-label="Clear input image" title="Remove the input image">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <path d="M4 4 l10 10 M14 4 l-10 10"/>
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            </article>
 
-          <article class="image-card">
-            <div class="card-heading">
-              <h3>Output</h3>
-              <span class="guide-status" aria-hidden="true">Last render</span>
-            </div>
-            <div class="output-slot">
-              <div id="outputPlaceholder" class="placeholder">The result will appear here.</div>
-              <img id="outputImage" alt="Generated output" hidden />
-            </div>
-            <div class="image-actions">
-              <button type="button" id="useAsInputBtn" class="btn btn-outline" disabled>Use output as input</button>
-            </div>
-          </article>
-        </div>
-
-        <section class="history">
-          <div class="history-heading">
-            <h3>Recent outputs</h3>
-            <span class="guide-status" aria-hidden="true">Local session</span>
+            <article class="image-card image-card-output">
+              <div class="card-heading">
+                <h3>Output</h3>
+                <span class="guide-status" aria-hidden="true">Last render</span>
+              </div>
+              <div class="output-slot">
+                <div id="outputPlaceholder" class="placeholder">
+                  <span class="placeholder-main">Awaiting render</span>
+                  <span class="placeholder-sub">the result will appear here</span>
+                </div>
+                <img id="outputImage" alt="Generated output" hidden />
+              </div>
+              <div class="image-actions">
+                <a id="downloadBtn" class="btn btn-secondary" download aria-disabled="true" href="#">Download</a>
+                <button type="button" id="useAsInputBtn" class="btn btn-outline" disabled>Use as input</button>
+              </div>
+            </article>
           </div>
+        </section>
+
+        <section class="prompt-block">
+          <form id="chatForm" class="chat-form">
+            <textarea id="promptInput" rows="3" placeholder="e.g. replace the sofa with a bronze velvet chaise, keep the morning light…" required></textarea>
+            <div class="chat-actions">
+              <span id="elapsed" class="status-label">Ready</span>
+              <button type="submit" id="runBtn" class="btn btn-primary btn-run">Run edit</button>
+            </div>
+          </form>
+          <div id="chatLog" class="chat-log" aria-live="polite" aria-label="Activity log"></div>
+        </section>
+
+        <section class="history-block">
           <div id="historyGrid" class="history-grid">No outputs yet.</div>
         </section>
       </section>
 
-      <aside class="panel panel-controls">
-        <header class="panel-header">
-          <span class="section-num">004 — Controls</span>
-          <h2 class="section-title">Parameters</h2>
-          <p class="section-sub">Spatial direction first, then the diffusion knobs.</p>
-        </header>
-
+      <aside class="sidebar">
         <section class="tool-block">
-          <h3>Spatial Editing</h3>
+          <h3>Spatial editing</h3>
           <label class="control">
             <span>Mode</span>
             <select id="spatialModeInput">
@@ -160,61 +156,72 @@
               </select>
             </label>
           </div>
-          <label class="control">
-            <span>Template preview</span>
-            <textarea id="spatialPromptPreview" class="prompt-preview" rows="5" readonly></textarea>
-          </label>
-          <div class="control-row">
-            <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary">Use template</button>
+          <div id="spatialTemplateGroup" hidden>
+            <label class="control">
+              <span>Template preview</span>
+              <textarea id="spatialPromptPreview" class="prompt-preview" rows="4" readonly></textarea>
+            </label>
+            <div class="control-row">
+              <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary btn-ghost">Use template</button>
+            </div>
           </div>
         </section>
 
-        <label class="control">
-          <span>Steps</span>
-          <div class="control-row">
-            <input id="stepsInput" type="range" min="1" max="120" step="1" value="50" />
-            <output id="stepsValue">50</output>
+        <section class="tool-block">
+          <h3>Diffusion</h3>
+          <label class="control">
+            <span>Steps</span>
+            <div class="control-row">
+              <input id="stepsInput" type="range" min="1" max="120" step="1" value="50" />
+              <output id="stepsValue">50</output>
+            </div>
+          </label>
+          <label class="control">
+            <span>Guidance scale</span>
+            <div class="control-row">
+              <input id="guidanceInput" type="range" min="1" max="20" step="0.5" value="5" />
+              <output id="guidanceValue">5.0</output>
+            </div>
+          </label>
+          <label class="control">
+            <span>Seed</span>
+            <div class="control-row">
+              <input id="seedInput" type="number" min="0" value="42" />
+              <button type="button" id="randomSeedBtn" class="btn btn-outline btn-ghost">Random</button>
+            </div>
+          </label>
+          <label class="control">
+            <span>Negative prompt</span>
+            <textarea id="negPromptInput" rows="2" placeholder="e.g. blurry, extra fingers, text, low quality"></textarea>
+            <small class="help-text help-inline">What the model should <em>avoid</em>. Used as the negative branch of classifier-free guidance.</small>
+          </label>
+          <label class="control">
+            <span>Base size</span>
+            <select id="baseSizeInput">
+              <option>256</option>
+              <option>512</option>
+              <option>768</option>
+              <option selected>1024</option>
+            </select>
+          </label>
+          <div class="control-pair">
+            <label class="control">
+              <span>Height</span>
+              <input id="heightInput" type="number" min="128" max="2048" value="1024" />
+            </label>
+            <label class="control">
+              <span>Width</span>
+              <input id="widthInput" type="number" min="128" max="2048" value="1024" />
+            </label>
           </div>
-        </label>
-        <label class="control">
-          <span>Guidance Scale</span>
-          <div class="control-row">
-            <input id="guidanceInput" type="range" min="1" max="20" step="0.5" value="5" />
-            <output id="guidanceValue">5.0</output>
-          </div>
-        </label>
-        <label class="control">
-          <span>Seed</span>
-          <div class="control-row">
-            <input id="seedInput" type="number" min="0" value="42" />
-            <button type="button" id="randomSeedBtn" class="btn btn-outline btn-ghost">Random</button>
-          </div>
-        </label>
-        <label class="control">
-          <span>Negative prompt</span>
-          <textarea id="negPromptInput" rows="2" placeholder="Optional negative prompt"></textarea>
-        </label>
-        <label class="control">
-          <span>Base size</span>
-          <select id="baseSizeInput">
-            <option>256</option>
-            <option>512</option>
-            <option>768</option>
-            <option selected>1024</option>
-          </select>
-        </label>
-        <label class="control">
-          <span>Height</span>
-          <input id="heightInput" type="number" min="128" max="2048" value="1024" />
-        </label>
-        <label class="control">
-          <span>Width</span>
-          <input id="widthInput" type="number" min="128" max="2048" value="1024" />
-        </label>
-        <label class="control checkbox">
-          <input id="rewritePromptInput" type="checkbox" />
-          <span>Rewrite prompt (LLM)</span>
-        </label>
+          <label class="control checkbox">
+            <input id="rewritePromptInput" type="checkbox" />
+            <span>Rewrite prompt (LLM)</span>
+          </label>
+          <small class="help-text help-inline">
+            When on, your instruction (and the input image) are sent to an OpenAI model first; it rewrites your prompt into a more specific edit instruction before diffusion. Requires <code>OPENAI_API_KEY</code>.
+          </small>
+        </section>
       </aside>
     </main>
 
