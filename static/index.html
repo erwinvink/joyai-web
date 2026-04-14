@@ -214,13 +214,15 @@
               <input id="widthInput" type="number" min="128" max="2048" value="1024" />
             </label>
           </div>
-          <label class="control checkbox">
-            <input id="rewritePromptInput" type="checkbox" />
-            <span>Rewrite prompt (LLM)</span>
-          </label>
-          <small class="help-text help-inline">
-            When on, your instruction (and the input image) are sent to an OpenAI model first; it rewrites your prompt into a more specific edit instruction before diffusion. Requires <code>OPENAI_API_KEY</code>.
-          </small>
+          <div id="rewriteGroup">
+            <label class="control checkbox">
+              <input id="rewritePromptInput" type="checkbox" checked />
+              <span>Rewrite prompt (LLM)</span>
+            </label>
+            <small class="help-text help-inline">
+              When on, your instruction (and the input image) are sent to an OpenAI model first; it rewrites your prompt into a more specific edit instruction before diffusion. The rewritten text is shown in the activity log. Requires <code>OPENAI_API_KEY</code>. Skipped automatically for spatial modes, which use JoyAI's exact template wording.
+            </small>
+          </div>
         </section>
       </aside>
     </main>

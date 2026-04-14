@@ -17,6 +17,7 @@ const baseSizeInput = document.getElementById("baseSizeInput");
 const heightInput = document.getElementById("heightInput");
 const widthInput = document.getElementById("widthInput");
 const rewritePromptInput = document.getElementById("rewritePromptInput");
+const rewriteGroup = document.getElementById("rewriteGroup");
 
 const spatialModeInput = document.getElementById("spatialModeInput");
 const spatialModeHelp = document.getElementById("spatialModeHelp");
@@ -442,6 +443,10 @@ function updateSpatialUI() {
   spatialGuideHelp.hidden = mode !== "move";
   spatialCameraGroup.hidden = mode !== "camera";
   spatialTemplateGroup.hidden = mode === "none";
+  // LLM rewrite is irrelevant (and likely harmful) when we're sending a
+  // canonical JoyAI spatial-mode template — hide it entirely in those modes.
+  // The checkbox's own state is preserved so Free Edit remembers it.
+  rewriteGroup.hidden = mode !== "none";
 
   if (mode === "move") {
     spatialModeHelp.textContent =
@@ -655,13 +660,20 @@ chatForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  // Rewrite is a no-op for canonical spatial templates — never send it on.
+  const rewriteRequested = rewritePromptInput.checked && spatialMode === "none";
+
   setBusy(true);
   elapsedLabel.textContent = "Running…";
   const startedAt = performance.now();
 
+  // Capture the prompt we're actually sending so we can diff against the
+  // server's (possibly-rewritten) reply afterwards.
+  const submittedPrompt = prompt;
+
   try {
     const fd = new FormData();
-    fd.append("prompt", prompt);
+    fd.append("prompt", submittedPrompt);
     fd.append("steps", stepsInput.value);
     fd.append("guidance_scale", guidanceInput.value);
     fd.append("seed", seedInput.value);
@@ -669,7 +681,7 @@ chatForm.addEventListener("submit", async (event) => {
     fd.append("basesize", baseSizeInput.value);
     fd.append("height", heightInput.value);
     fd.append("width", widthInput.value);
-    fd.append("rewrite_prompt", rewritePromptInput.checked ? "true" : "false");
+    fd.append("rewrite_prompt", rewriteRequested ? "true" : "false");
 
     if (inputFile) {
       const fileToUpload = spatialMode === "move" ? await buildGuidedImageFile(inputFile) : inputFile;
@@ -684,7 +696,13 @@ chatForm.addEventListener("submit", async (event) => {
 
     setOutputUrl(result.output_url);
 
-    pushLog(`Done (${result.elapsed_seconds}s): ${result.prompt}`);
+    const finalPrompt = (result.prompt || "").trim();
+    if (rewriteRequested && finalPrompt && finalPrompt !== submittedPrompt) {
+      pushLog(`LLM rewrote → ${finalPrompt}`);
+    } else if (rewriteRequested && finalPrompt === submittedPrompt) {
+      pushLog("LLM rewrite returned your prompt unchanged (or OPENAI_API_KEY is not set).");
+    }
+    pushLog(`Done in ${result.elapsed_seconds}s.`);
     pushLog(`Saved output: ${result.output_url}`);
     await loadHistory();
   } catch (error) {
