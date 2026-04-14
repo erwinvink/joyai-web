@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JoyAI-Image Web</title>
+  <title>JoyAI · Image — Local Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap">
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <strong>JoyAI-Image</strong>
-        <span class="muted">local web UI</span>
+        <span class="wordmark">JoyAI · <span class="wordmark-accent">Image</span></span>
+        <span class="brand-sub">Local inference workbench</span>
       </div>
       <div class="topbar-meta">
         <div id="statusPill" class="status status-offline">Connecting…</div>
@@ -19,10 +22,11 @@
     </header>
 
     <section class="panel gpu-panel">
-      <div class="panel-heading">
-        <h2>GPU Telemetry</h2>
-        <span class="muted">Realtime `nvidia-smi` usage</span>
-      </div>
+      <header class="panel-header">
+        <span class="section-num">001 — Telemetry</span>
+        <h2 class="section-title">GPU Telemetry</h2>
+        <p class="section-sub">Realtime <code>nvidia-smi</code> readings from the inference hosts.</p>
+      </header>
       <div id="gpuGrid" class="gpu-grid">
         <p class="muted">Loading GPU telemetry…</p>
       </div>
@@ -30,27 +34,35 @@
 
     <main class="layout">
       <section class="panel panel-chat">
-        <h2>Prompt</h2>
-        <div id="chatLog" class="chat-log"></div>
+        <header class="panel-header">
+          <span class="section-num">002 — Prompt</span>
+          <h2 class="section-title">Compose</h2>
+          <p class="section-sub">Describe the edit, or the scene to synthesise from scratch.</p>
+        </header>
+        <div id="chatLog" class="chat-log" aria-live="polite"></div>
         <form id="chatForm" class="chat-form">
-          <textarea id="promptInput" rows="4" placeholder="Describe what to generate or edit..." required></textarea>
+          <textarea id="promptInput" rows="4" placeholder="e.g. replace the sofa with a bronze velvet chaise, keep the morning light…" required></textarea>
           <div class="chat-actions">
             <button type="submit" id="runBtn" class="btn btn-primary">Run</button>
-            <span id="elapsed" class="muted">Ready</span>
+            <span id="elapsed" class="status-label">Ready</span>
           </div>
         </form>
       </section>
 
       <section class="panel panel-workbench">
-        <h2>Image I/O</h2>
+        <header class="panel-header">
+          <span class="section-num">003 — Workbench</span>
+          <h2 class="section-title">Image I/O</h2>
+          <p class="section-sub">Upload a reference, inspect the generated frame, and curate recent outputs.</p>
+        </header>
         <div class="image-grid">
           <article class="image-card">
             <div class="card-heading">
               <h3>Input</h3>
-              <span id="guideStatus" class="muted guide-status">Spatial guide inactive.</span>
+              <span id="guideStatus" class="guide-status">Spatial guide inactive.</span>
             </div>
             <div id="uploadSlot" class="upload-slot" role="button" tabindex="0" aria-label="Upload input image">
-              <span id="inputPlaceholder" class="placeholder">Drop image or click to upload</span>
+              <span id="inputPlaceholder" class="placeholder">Drop an image, or click to upload</span>
               <div id="inputStage" class="input-stage" hidden>
                 <img id="inputImage" alt="Input preview" hidden />
                 <canvas id="guideCanvas" class="guide-canvas" hidden></canvas>
@@ -58,33 +70,44 @@
             </div>
             <input id="imageInput" type="file" accept="image/*" hidden />
             <div class="image-actions">
-              <button type="button" id="uploadInputBtn" class="btn btn-secondary">Upload</button>
-              <button type="button" id="toggleGuideBtn" class="btn btn-secondary" disabled>Draw red box</button>
-              <button type="button" id="clearGuideBtn" class="btn btn-secondary" disabled>Clear box</button>
-              <button type="button" id="clearInputBtn" class="btn btn-secondary" disabled>Clear</button>
+              <button type="button" id="uploadInputBtn" class="btn btn-outline">Upload</button>
+              <button type="button" id="toggleGuideBtn" class="btn btn-outline" disabled>Draw red box</button>
+              <button type="button" id="clearGuideBtn" class="btn btn-outline" disabled>Clear box</button>
+              <button type="button" id="clearInputBtn" class="btn btn-outline" disabled>Clear</button>
             </div>
           </article>
 
           <article class="image-card">
-            <h3>Output</h3>
+            <div class="card-heading">
+              <h3>Output</h3>
+              <span class="guide-status" aria-hidden="true">Last render</span>
+            </div>
             <div class="output-slot">
-              <div id="outputPlaceholder" class="placeholder">Output will appear here</div>
+              <div id="outputPlaceholder" class="placeholder">The result will appear here.</div>
               <img id="outputImage" alt="Generated output" hidden />
             </div>
             <div class="image-actions">
-              <button type="button" id="useAsInputBtn" class="btn btn-secondary" disabled>Use output as input</button>
+              <button type="button" id="useAsInputBtn" class="btn btn-outline" disabled>Use output as input</button>
             </div>
           </article>
         </div>
 
         <section class="history">
-          <h3>Recent outputs</h3>
+          <div class="history-heading">
+            <h3>Recent outputs</h3>
+            <span class="guide-status" aria-hidden="true">Local session</span>
+          </div>
           <div id="historyGrid" class="history-grid">No outputs yet.</div>
         </section>
       </section>
 
       <aside class="panel panel-controls">
-        <h2>Controls</h2>
+        <header class="panel-header">
+          <span class="section-num">004 — Controls</span>
+          <h2 class="section-title">Parameters</h2>
+          <p class="section-sub">Spatial direction first, then the diffusion knobs.</p>
+        </header>
+
         <section class="tool-block">
           <h3>Spatial Editing</h3>
           <label class="control">
@@ -96,14 +119,14 @@
               <option value="camera">Camera Control</option>
             </select>
           </label>
-          <p id="spatialModeHelp" class="muted help-text">
+          <p id="spatialModeHelp" class="help-text">
             Use Free Edit for ordinary prompt-based changes. The modes below follow JoyAI's documented spatial prompt patterns.
           </p>
           <label id="spatialObjectGroup" class="control" hidden>
             <span>Target object</span>
             <input id="spatialObjectInput" type="text" placeholder="e.g. table in the middle" />
           </label>
-          <div id="spatialGuideHelp" class="muted help-text" hidden>
+          <div id="spatialGuideHelp" class="help-text" hidden>
             Object Move requires a red box drawn on the input image. The frontend will burn that box into the uploaded image.
           </div>
           <label id="spatialViewGroup" class="control" hidden>
@@ -145,6 +168,7 @@
             <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary">Use template</button>
           </div>
         </section>
+
         <label class="control">
           <span>Steps</span>
           <div class="control-row">
@@ -163,7 +187,7 @@
           <span>Seed</span>
           <div class="control-row">
             <input id="seedInput" type="number" min="0" value="42" />
-            <button type="button" id="randomSeedBtn" class="btn btn-secondary">Random</button>
+            <button type="button" id="randomSeedBtn" class="btn btn-outline btn-ghost">Random</button>
           </div>
         </label>
         <label class="control">
@@ -193,6 +217,12 @@
         </label>
       </aside>
     </main>
+
+    <footer class="app-foot">
+      <span class="brand-sub">JoyAI · Image</span>
+      <span class="foot-dot">·</span>
+      <span class="foot-text">Served locally via FastAPI</span>
+    </footer>
   </div>
 
   <script src="/static/main.js"></script>
