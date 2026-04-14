@@ -31,6 +31,7 @@ const cameraPitchInput = document.getElementById("cameraPitchInput");
 const cameraZoomInput = document.getElementById("cameraZoomInput");
 const spatialPromptPreview = document.getElementById("spatialPromptPreview");
 const applySpatialPromptBtn = document.getElementById("applySpatialPromptBtn");
+const spatialTemplateGroup = document.getElementById("spatialTemplateGroup");
 
 const uploadSlot = document.getElementById("uploadSlot");
 const uploadInputBtn = document.getElementById("uploadInputBtn");
@@ -152,7 +153,17 @@ function updateGuideUI() {
   toggleGuideBtn.disabled = !moveMode || !hasImage || isBusy;
   clearGuideBtn.disabled = !moveMode || !guideRect || isBusy;
   clearInputBtn.disabled = !hasImage || isBusy;
-  toggleGuideBtn.textContent = guideToolEnabled ? "Stop drawing" : "Draw red box";
+
+  // Preserve the inline SVG — update only class, aria-label and title.
+  toggleGuideBtn.classList.toggle("is-drawing", guideToolEnabled);
+  const toggleLabel = guideToolEnabled ? "Stop drawing" : "Draw red box";
+  toggleGuideBtn.setAttribute("aria-label", toggleLabel);
+  toggleGuideBtn.setAttribute(
+    "title",
+    guideToolEnabled ? "Stop drawing — click to finish" : "Draw red destination box",
+  );
+  toggleGuideBtn.setAttribute("aria-pressed", guideToolEnabled ? "true" : "false");
+
   uploadSlot.classList.toggle("guide-active", guideToolEnabled && moveMode);
   guideStatus.textContent = getGuideStatusText();
   if (!guideCanvas.hidden) {
@@ -430,6 +441,7 @@ function updateSpatialUI() {
   spatialViewGroup.hidden = mode !== "rotate";
   spatialGuideHelp.hidden = mode !== "move";
   spatialCameraGroup.hidden = mode !== "camera";
+  spatialTemplateGroup.hidden = mode === "none";
 
   if (mode === "move") {
     spatialModeHelp.textContent =

@@ -27,14 +27,6 @@
     <main class="layout">
       <section class="workbench">
         <section class="canvas-block">
-          <header class="block-head">
-            <div>
-              <span class="section-num">001 — Canvas</span>
-              <h2 class="section-title">Image I/O</h2>
-            </div>
-            <p class="section-sub">Upload a reference, render the next frame, keep the result.</p>
-          </header>
-
           <div class="image-grid">
             <article class="image-card image-card-input">
               <div class="card-heading">
@@ -54,9 +46,24 @@
               <input id="imageInput" type="file" accept="image/*" hidden />
               <div class="image-actions">
                 <button type="button" id="uploadInputBtn" class="btn btn-outline">Upload</button>
-                <button type="button" id="toggleGuideBtn" class="btn btn-outline" disabled>Draw red box</button>
-                <button type="button" id="clearGuideBtn" class="btn btn-outline" disabled>Clear box</button>
-                <button type="button" id="clearInputBtn" class="btn btn-outline" disabled>Clear</button>
+                <span class="icon-group">
+                  <button type="button" id="toggleGuideBtn" class="btn btn-icon btn-outline" disabled aria-label="Draw red box" title="Draw red destination box">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <rect x="2.75" y="2.75" width="12.5" height="12.5" stroke-dasharray="2.2 1.6"/>
+                    </svg>
+                  </button>
+                  <button type="button" id="clearGuideBtn" class="btn btn-icon btn-outline" disabled aria-label="Clear red box" title="Clear the red box">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <rect x="2.75" y="2.75" width="12.5" height="12.5" stroke-dasharray="2.2 1.6"/>
+                      <path d="M5.5 5.5 l7 7"/>
+                    </svg>
+                  </button>
+                  <button type="button" id="clearInputBtn" class="btn btn-icon btn-outline" disabled aria-label="Clear input image" title="Remove the input image">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+                      <path d="M4 4 l10 10 M14 4 l-10 10"/>
+                    </svg>
+                  </button>
+                </span>
               </div>
             </article>
 
@@ -81,16 +88,10 @@
         </section>
 
         <section class="prompt-block">
-          <header class="block-head block-head-row">
-            <div>
-              <span class="section-num">002 — Prompt</span>
-              <h2 class="section-title">Compose</h2>
-            </div>
-            <span id="elapsed" class="status-label">Ready</span>
-          </header>
           <form id="chatForm" class="chat-form">
             <textarea id="promptInput" rows="3" placeholder="e.g. replace the sofa with a bronze velvet chaise, keep the morning light…" required></textarea>
             <div class="chat-actions">
+              <span id="elapsed" class="status-label">Ready</span>
               <button type="submit" id="runBtn" class="btn btn-primary btn-run">Run edit</button>
             </div>
           </form>
@@ -98,24 +99,11 @@
         </section>
 
         <section class="history-block">
-          <header class="block-head block-head-row">
-            <div>
-              <span class="section-num">003 — Recent</span>
-              <h2 class="section-title">Previous outputs</h2>
-            </div>
-            <span class="guide-status" aria-hidden="true">Local session</span>
-          </header>
           <div id="historyGrid" class="history-grid">No outputs yet.</div>
         </section>
       </section>
 
       <aside class="sidebar">
-        <section class="sidebar-head">
-          <span class="section-num">004 — Controls</span>
-          <h2 class="section-title">Parameters</h2>
-          <p class="section-sub">Spatial direction first, then the diffusion knobs.</p>
-        </section>
-
         <section class="tool-block">
           <h3>Spatial editing</h3>
           <label class="control">
@@ -168,12 +156,14 @@
               </select>
             </label>
           </div>
-          <label class="control">
-            <span>Template preview</span>
-            <textarea id="spatialPromptPreview" class="prompt-preview" rows="4" readonly></textarea>
-          </label>
-          <div class="control-row">
-            <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary btn-ghost">Use template</button>
+          <div id="spatialTemplateGroup" hidden>
+            <label class="control">
+              <span>Template preview</span>
+              <textarea id="spatialPromptPreview" class="prompt-preview" rows="4" readonly></textarea>
+            </label>
+            <div class="control-row">
+              <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary btn-ghost">Use template</button>
+            </div>
           </div>
         </section>
 
@@ -202,7 +192,8 @@
           </label>
           <label class="control">
             <span>Negative prompt</span>
-            <textarea id="negPromptInput" rows="2" placeholder="Optional negative prompt"></textarea>
+            <textarea id="negPromptInput" rows="2" placeholder="e.g. blurry, extra fingers, text, low quality"></textarea>
+            <small class="help-text help-inline">What the model should <em>avoid</em>. Used as the negative branch of classifier-free guidance.</small>
           </label>
           <label class="control">
             <span>Base size</span>
@@ -227,6 +218,9 @@
             <input id="rewritePromptInput" type="checkbox" />
             <span>Rewrite prompt (LLM)</span>
           </label>
+          <small class="help-text help-inline">
+            When on, your instruction (and the input image) are sent to an OpenAI model first; it rewrites your prompt into a more specific edit instruction before diffusion. Requires <code>OPENAI_API_KEY</code>.
+          </small>
         </section>
       </aside>
     </main>
