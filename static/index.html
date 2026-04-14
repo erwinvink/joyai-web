@@ -13,8 +13,20 @@
         <strong>JoyAI-Image</strong>
         <span class="muted">local web UI</span>
       </div>
-      <div id="statusPill" class="status status-offline">Connecting…</div>
+      <div class="topbar-meta">
+        <div id="statusPill" class="status status-offline">Connecting…</div>
+      </div>
     </header>
+
+    <section class="panel gpu-panel">
+      <div class="panel-heading">
+        <h2>GPU Telemetry</h2>
+        <span class="muted">Realtime `nvidia-smi` usage</span>
+      </div>
+      <div id="gpuGrid" class="gpu-grid">
+        <p class="muted">Loading GPU telemetry…</p>
+      </div>
+    </section>
 
     <main class="layout">
       <section class="panel panel-chat">
@@ -33,13 +45,22 @@
         <h2>Image I/O</h2>
         <div class="image-grid">
           <article class="image-card">
-            <h3>Input</h3>
-            <label for="imageInput" class="upload-slot">
+            <div class="card-heading">
+              <h3>Input</h3>
+              <span id="guideStatus" class="muted guide-status">Spatial guide inactive.</span>
+            </div>
+            <div id="uploadSlot" class="upload-slot" role="button" tabindex="0" aria-label="Upload input image">
               <span id="inputPlaceholder" class="placeholder">Drop image or click to upload</span>
-              <img id="inputImage" alt="Input preview" hidden />
-              <input id="imageInput" type="file" accept="image/*" hidden />
-            </label>
+              <div id="inputStage" class="input-stage" hidden>
+                <img id="inputImage" alt="Input preview" hidden />
+                <canvas id="guideCanvas" class="guide-canvas" hidden></canvas>
+              </div>
+            </div>
+            <input id="imageInput" type="file" accept="image/*" hidden />
             <div class="image-actions">
+              <button type="button" id="uploadInputBtn" class="btn btn-secondary">Upload</button>
+              <button type="button" id="toggleGuideBtn" class="btn btn-secondary" disabled>Draw red box</button>
+              <button type="button" id="clearGuideBtn" class="btn btn-secondary" disabled>Clear box</button>
               <button type="button" id="clearInputBtn" class="btn btn-secondary" disabled>Clear</button>
             </div>
           </article>
@@ -64,6 +85,66 @@
 
       <aside class="panel panel-controls">
         <h2>Controls</h2>
+        <section class="tool-block">
+          <h3>Spatial Editing</h3>
+          <label class="control">
+            <span>Mode</span>
+            <select id="spatialModeInput">
+              <option value="none" selected>Free Edit</option>
+              <option value="move">Object Move</option>
+              <option value="rotate">Object Rotation</option>
+              <option value="camera">Camera Control</option>
+            </select>
+          </label>
+          <p id="spatialModeHelp" class="muted help-text">
+            Use Free Edit for ordinary prompt-based changes. The modes below follow JoyAI's documented spatial prompt patterns.
+          </p>
+          <label id="spatialObjectGroup" class="control" hidden>
+            <span>Target object</span>
+            <input id="spatialObjectInput" type="text" placeholder="e.g. table in the middle" />
+          </label>
+          <div id="spatialGuideHelp" class="muted help-text" hidden>
+            Object Move requires a red box drawn on the input image. The frontend will burn that box into the uploaded image.
+          </div>
+          <label id="spatialViewGroup" class="control" hidden>
+            <span>Target view</span>
+            <select id="spatialViewInput">
+              <option value="front">front</option>
+              <option value="right" selected>right</option>
+              <option value="left">left</option>
+              <option value="rear">rear</option>
+              <option value="front right">front right</option>
+              <option value="front left">front left</option>
+              <option value="rear right">rear right</option>
+              <option value="rear left">rear left</option>
+            </select>
+          </label>
+          <div id="spatialCameraGroup" hidden>
+            <label class="control">
+              <span>Yaw</span>
+              <input id="cameraYawInput" type="number" min="-180" max="180" step="1" value="45" />
+            </label>
+            <label class="control">
+              <span>Pitch</span>
+              <input id="cameraPitchInput" type="number" min="-90" max="90" step="1" value="0" />
+            </label>
+            <label class="control">
+              <span>Zoom</span>
+              <select id="cameraZoomInput">
+                <option value="in">in</option>
+                <option value="out">out</option>
+                <option value="unchanged" selected>unchanged</option>
+              </select>
+            </label>
+          </div>
+          <label class="control">
+            <span>Template preview</span>
+            <textarea id="spatialPromptPreview" class="prompt-preview" rows="5" readonly></textarea>
+          </label>
+          <div class="control-row">
+            <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary">Use template</button>
+          </div>
+        </section>
         <label class="control">
           <span>Steps</span>
           <div class="control-row">

@@ -40,6 +40,8 @@ uv pip install -e /Users/erwinvink/ai_stuff/JoyAI-Image
 
 ## Run
 
+If you have a single GPU with enough free VRAM, you can still start the server directly:
+
 ```bash
 uv run --env-file .env app.py \
   --ckpt-root /Users/erwinvink/ai_stuff/joyai_ckpts/JoyAI-Image-Edit-git \
@@ -47,6 +49,22 @@ uv run --env-file .env app.py \
   --host 127.0.0.1 \
   --port 7860
 ```
+
+On 24 GB cards, the default single-process load can be a tight fit. This repo now includes a two-GPU launch script that uses JoyAI's HSDP/FSDP inference path automatically:
+
+```bash
+./run-dual-gpu.sh
+```
+
+Useful overrides:
+
+```bash
+HOST=0.0.0.0 MASTER_PORT=29511 ./run-dual-gpu.sh
+CUDA_VISIBLE_DEVICES=1,0 ./run-dual-gpu.sh
+JOYAI_ROOT=/path/to/JoyAI-Image CKPT_ROOT=/path/to/ckpts_infer ./run-dual-gpu.sh
+```
+
+`run-dual-gpu.sh` keeps the JoyAI web app on local port `7860` so your reverse proxy can always target the same upstream.
 
 If a checkpoint file is missing, the server still starts and `/api/status` will show the exact startup error while the UI remains available.
 
@@ -112,3 +130,4 @@ curl -X POST "http://127.0.0.1:7860/api/edit" \
 
 - The server serializes inference calls using an async lock to avoid concurrent GPU contention.
 - Model load happens before server start in `__main__`.
+- When launched with `torchrun`, rank 0 serves HTTP while the remaining ranks stay attached as inference workers.
