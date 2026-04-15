@@ -426,19 +426,6 @@ code {
   height: 100%;
 }
 
-.guide-status {
-  font-family: var(--font-body);
-  font-size: 0.6rem;
-  font-weight: 400;
-  letter-spacing: var(--track-md);
-  text-transform: uppercase;
-  color: var(--color-muted);
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .placeholder {
   display: flex;
   flex-direction: column;

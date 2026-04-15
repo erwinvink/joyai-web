@@ -31,7 +31,6 @@
             <article class="image-card image-card-input">
               <div class="card-heading">
                 <h3>Input</h3>
-                <span id="guideStatus" class="guide-status">Spatial guide inactive.</span>
               </div>
               <div id="uploadSlot" class="upload-slot" role="button" tabindex="0" aria-label="Upload input image">
                 <span id="inputPlaceholder" class="placeholder">
@@ -70,7 +69,6 @@
             <article class="image-card image-card-output">
               <div class="card-heading">
                 <h3>Output</h3>
-                <span class="guide-status" aria-hidden="true">Last render</span>
               </div>
               <div class="output-slot">
                 <div id="outputPlaceholder" class="placeholder">
@@ -219,9 +217,6 @@
               <input id="rewritePromptInput" type="checkbox" checked />
               <span>Rewrite prompt (LLM)</span>
             </label>
-            <small class="help-text help-inline">
-              When on, your instruction (and the input image) are sent to an OpenAI model first; it rewrites your prompt into a more specific edit instruction before diffusion. The rewritten text is shown in the activity log. Requires <code>OPENAI_API_KEY</code>. Skipped automatically for spatial modes, which use JoyAI's exact template wording.
-            </small>
           </div>
         </section>
       </aside>

@@ -6,3 +6,4 @@ uploads/
 .DS_Store
 .venv/
 .venv310/
+.playwright-mcp/

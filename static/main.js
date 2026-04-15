@@ -41,7 +41,6 @@ const inputStage = document.getElementById("inputStage");
 const inputImage = document.getElementById("inputImage");
 const inputPlaceholder = document.getElementById("inputPlaceholder");
 const guideCanvas = document.getElementById("guideCanvas");
-const guideStatus = document.getElementById("guideStatus");
 const toggleGuideBtn = document.getElementById("toggleGuideBtn");
 const clearGuideBtn = document.getElementById("clearGuideBtn");
 const clearInputBtn = document.getElementById("clearInputBtn");
@@ -122,24 +121,6 @@ function buildRectFromPoints(a, b) {
   };
 }
 
-function getGuideStatusText() {
-  const mode = spatialModeInput.value;
-  const hasImage = Boolean(imageInput.files?.[0]);
-  if (mode !== "move") {
-    return "Red box guidance is only used for Object Move.";
-  }
-  if (!hasImage) {
-    return "Upload an image, then draw the red destination box.";
-  }
-  if (guideToolEnabled) {
-    return "Drag on the image to place the red box.";
-  }
-  if (guideRect) {
-    return "Red box ready.";
-  }
-  return "No red box yet.";
-}
-
 function updateGuideUI() {
   const moveMode = spatialModeInput.value === "move";
   const hasImage = Boolean(imageInput.files?.[0]);
@@ -149,6 +130,12 @@ function updateGuideUI() {
     guidePointerId = null;
     guideDraftRect = null;
   }
+
+  // Guide tooling is only meaningful in Object Move mode. Hide the two
+  // dedicated icons entirely in every other mode so the input actions row
+  // stays uncluttered (Clear-input stays visible regardless).
+  toggleGuideBtn.hidden = !moveMode;
+  clearGuideBtn.hidden = !moveMode;
 
   guideCanvas.hidden = !moveMode || !hasImage;
   toggleGuideBtn.disabled = !moveMode || !hasImage || isBusy;
@@ -166,7 +153,6 @@ function updateGuideUI() {
   toggleGuideBtn.setAttribute("aria-pressed", guideToolEnabled ? "true" : "false");
 
   uploadSlot.classList.toggle("guide-active", guideToolEnabled && moveMode);
-  guideStatus.textContent = getGuideStatusText();
   if (!guideCanvas.hidden) {
     syncGuideCanvas();
   } else {
@@ -211,11 +197,25 @@ function syncGuideCanvas() {
     return;
   }
 
+  // `input-stage` is a flex-centered box; the image sits centered inside with
+  // `object-fit: contain`, which leaves letterbox bands on one axis. The
+  // canvas must overlay ONLY the image — if we leave it pinned to the stage's
+  // top-left (inset: 0 + explicit width/height), pointer events on the lower
+  // band of a landscape image don't land on the canvas.
+  const stageRect = inputStage.getBoundingClientRect();
+  const imageRect = inputImage.getBoundingClientRect();
+  const offsetX = Math.max(0, imageRect.left - stageRect.left);
+  const offsetY = Math.max(0, imageRect.top - stageRect.top);
+
   const dpr = window.devicePixelRatio || 1;
   guideCanvas.width = Math.round(width * dpr);
   guideCanvas.height = Math.round(height * dpr);
   guideCanvas.style.width = `${width}px`;
   guideCanvas.style.height = `${height}px`;
+  guideCanvas.style.left = `${offsetX}px`;
+  guideCanvas.style.top = `${offsetY}px`;
+  guideCanvas.style.right = "auto";
+  guideCanvas.style.bottom = "auto";
   drawGuideCanvas();
 }
 
@@ -226,7 +226,8 @@ function drawGuideRect(ctx, rect, options = {}) {
 
   const width = guideCanvas.clientWidth;
   const height = guideCanvas.clientHeight;
-  const strokeWidth = Math.max(3, Math.round(Math.max(width, height) * 0.01));
+  // Thin, crisp 2px stroke — reads as a guide, not as a big red rectangle.
+  const strokeWidth = 2;
   const inset = strokeWidth / 2;
 
   const x = rect.x * width;
