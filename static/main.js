@@ -51,6 +51,20 @@ const useAsInputBtn = document.getElementById("useAsInputBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const historyGrid = document.getElementById("historyGrid");
 
+const matchAspectBtn = document.getElementById("matchAspectBtn");
+const aspectHint = document.getElementById("aspectHint");
+const lightbox = document.getElementById("lightbox");
+const lightboxImage = document.getElementById("lightboxImage");
+const lightboxClose = document.getElementById("lightboxClose");
+
+const STORAGE_KEY = "joyai-web:form:v1";
+const HISTORY_META_KEY = "joyai-web:history-meta:v1";
+const HISTORY_META_LIMIT = 100;
+const PROMPT_TOOLTIP_MAX = 60;
+const ASPECT_SNAP = 64;
+const ASPECT_MIN = 256;
+const ASPECT_MAX = 2048;
+
 function setOutputUrl(url) {
   currentOutputUrl = url;
   outputImage.src = url;
@@ -102,10 +116,186 @@ function setBusy(active) {
   uploadInputBtn.disabled = active;
   applySpatialPromptBtn.disabled = active;
   updateGuideUI();
+  updateMatchAspectButton();
 }
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+/* ---------- localStorage (form + history metadata) -------------------- */
+
+const PERSISTED_FIELDS = [
+  ["promptInput", promptInput],
+  ["stepsInput", stepsInput],
+  ["guidanceInput", guidanceInput],
+  ["seedInput", seedInput],
+  ["negPromptInput", negPromptInput],
+  ["baseSizeInput", baseSizeInput],
+  ["heightInput", heightInput],
+  ["widthInput", widthInput],
+  ["rewritePromptInput", rewritePromptInput],
+  ["spatialModeInput", spatialModeInput],
+  ["spatialObjectInput", spatialObjectInput],
+  ["spatialViewInput", spatialViewInput],
+  ["cameraYawInput", cameraYawInput],
+  ["cameraPitchInput", cameraPitchInput],
+  ["cameraZoomInput", cameraZoomInput],
+];
+
+function safeReadJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeWriteJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* localStorage unavailable (private mode, quota) — best-effort only. */
+  }
+}
+
+function serializeFormState() {
+  const state = {};
+  for (const [key, el] of PERSISTED_FIELDS) {
+    if (!el) continue;
+    state[key] = el.type === "checkbox" ? el.checked : el.value;
+  }
+  return state;
+}
+
+let savePending = null;
+function scheduleSaveFormState() {
+  if (savePending) return;
+  savePending = setTimeout(() => {
+    savePending = null;
+    safeWriteJson(STORAGE_KEY, serializeFormState());
+  }, 250);
+}
+
+function restoreFormState() {
+  const state = safeReadJson(STORAGE_KEY, null);
+  if (!state || typeof state !== "object") return;
+  for (const [key, el] of PERSISTED_FIELDS) {
+    if (!el || !(key in state)) continue;
+    try {
+      if (el.type === "checkbox") {
+        el.checked = Boolean(state[key]);
+      } else {
+        el.value = state[key];
+      }
+    } catch {
+      /* ignore unusable stored value */
+    }
+  }
+  // Sync derived display widgets.
+  stepsValue.textContent = stepsInput.value;
+  guidanceValue.textContent = Number(guidanceInput.value).toFixed(1);
+}
+
+function loadHistoryMeta() {
+  const meta = safeReadJson(HISTORY_META_KEY, {});
+  return meta && typeof meta === "object" ? meta : {};
+}
+
+function saveHistoryMeta(meta) {
+  const entries = Object.entries(meta);
+  if (entries.length > HISTORY_META_LIMIT) {
+    entries.sort((a, b) => (b[1]?.when || 0) - (a[1]?.when || 0));
+    const trimmed = Object.fromEntries(entries.slice(0, HISTORY_META_LIMIT));
+    safeWriteJson(HISTORY_META_KEY, trimmed);
+    return;
+  }
+  safeWriteJson(HISTORY_META_KEY, meta);
+}
+
+function recordHistoryMeta(outputUrl, data) {
+  if (!outputUrl) return;
+  const filename = outputUrl.split("/").pop();
+  if (!filename) return;
+  const meta = loadHistoryMeta();
+  meta[filename] = { ...data, when: Date.now() };
+  saveHistoryMeta(meta);
+}
+
+/* ---------- Aspect snapping ------------------------------------------- */
+
+function snapDimension(value) {
+  const snapped = Math.round(value / ASPECT_SNAP) * ASPECT_SNAP;
+  return clamp(snapped, ASPECT_MIN, ASPECT_MAX);
+}
+
+function computeAspectDimensions(aspectW, aspectH, base) {
+  if (!aspectW || !aspectH || !base) return null;
+  const ratio = aspectW / aspectH;
+  let width;
+  let height;
+  if (ratio >= 1) {
+    width = base * Math.sqrt(ratio);
+    height = base / Math.sqrt(ratio);
+  } else {
+    width = base * Math.sqrt(ratio);
+    height = base / Math.sqrt(ratio);
+  }
+  return {
+    width: snapDimension(width),
+    height: snapDimension(height),
+  };
+}
+
+function simplifyRatio(w, h) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const g = gcd(Math.round(w), Math.round(h)) || 1;
+  return `${Math.round(w / g)}:${Math.round(h / g)}`;
+}
+
+function updateMatchAspectButton() {
+  const hasImage = Boolean(imageInput.files?.[0]) && inputImage.naturalWidth > 0 && inputImage.naturalHeight > 0;
+  matchAspectBtn.disabled = !hasImage || isBusy;
+  if (!hasImage) {
+    aspectHint.hidden = true;
+    aspectHint.textContent = "";
+    return;
+  }
+  const ratio = simplifyRatio(inputImage.naturalWidth, inputImage.naturalHeight);
+  aspectHint.hidden = false;
+  aspectHint.textContent = `Input is ${inputImage.naturalWidth}×${inputImage.naturalHeight} (${ratio})`;
+}
+
+function applyMatchAspect() {
+  if (!inputImage.naturalWidth || !inputImage.naturalHeight) return;
+  const base = Number(baseSizeInput.value) || 1024;
+  const dims = computeAspectDimensions(inputImage.naturalWidth, inputImage.naturalHeight, base);
+  if (!dims) return;
+  widthInput.value = dims.width;
+  heightInput.value = dims.height;
+  scheduleSaveFormState();
+  const ratio = simplifyRatio(inputImage.naturalWidth, inputImage.naturalHeight);
+  aspectHint.hidden = false;
+  aspectHint.textContent = `${ratio} → ${dims.width} × ${dims.height}`;
+}
+
+/* ---------- Lightbox -------------------------------------------------- */
+
+function openLightbox(src) {
+  if (!src) return;
+  lightboxImage.src = src;
+  lightbox.hidden = false;
+  document.body.classList.add("lightbox-open");
+  lightboxClose.focus();
+}
+
+function closeLightbox() {
+  lightbox.hidden = true;
+  lightboxImage.removeAttribute("src");
+  document.body.classList.remove("lightbox-open");
 }
 
 function buildRectFromPoints(a, b) {
@@ -184,6 +374,7 @@ function safeClearInput() {
   clearGuideBox();
   useAsInputBtn.disabled = !currentOutputUrl;
   updateGuideUI();
+  updateMatchAspectButton();
 }
 
 function syncGuideCanvas() {
@@ -375,12 +566,75 @@ function displayInputPreview() {
     inputPlaceholder.hidden = true;
     syncGuideCanvas();
     updateGuideUI();
+    updateMatchAspectButton();
   };
   inputImage.src = currentInputObjectUrl;
 }
 
 imageInput.addEventListener("change", displayInputPreview);
 window.addEventListener("resize", syncGuideCanvas);
+
+/* ---------- Drag-and-drop upload -------------------------------------- */
+
+function acceptDroppedFile(file) {
+  if (!file || !file.type || !file.type.startsWith("image/")) {
+    pushLog("Only image files can be dropped here.", true);
+    return;
+  }
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  imageInput.files = dt.files;
+  displayInputPreview();
+}
+
+["dragenter", "dragover"].forEach((eventName) => {
+  uploadSlot.addEventListener(eventName, (event) => {
+    if (isBusy) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "copy";
+    }
+    uploadSlot.classList.add("is-dragover");
+  });
+});
+
+["dragleave", "dragend"].forEach((eventName) => {
+  uploadSlot.addEventListener(eventName, (event) => {
+    // `dragleave` fires when entering a child — guard by checking relatedTarget.
+    if (eventName === "dragleave" && uploadSlot.contains(event.relatedTarget)) {
+      return;
+    }
+    uploadSlot.classList.remove("is-dragover");
+  });
+});
+
+uploadSlot.addEventListener("drop", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  uploadSlot.classList.remove("is-dragover");
+  if (isBusy) return;
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) return;
+  acceptDroppedFile(file);
+});
+
+// Block the browser's default "open as tab" behaviour if a drop misses the slot.
+["dragover", "drop"].forEach((eventName) => {
+  window.addEventListener(eventName, (event) => {
+    if (event.target === uploadSlot || uploadSlot.contains(event.target)) return;
+    event.preventDefault();
+  });
+});
+
+/* ---------- Match-aspect + baseSize -------------------------------- */
+
+matchAspectBtn.addEventListener("click", applyMatchAspect);
+baseSizeInput.addEventListener("change", () => {
+  if (imageInput.files?.[0] && inputImage.naturalWidth) {
+    applyMatchAspect();
+  }
+});
 
 useAsInputBtn.addEventListener("click", async () => {
   if (!currentOutputUrl) {
@@ -397,6 +651,38 @@ useAsInputBtn.addEventListener("click", async () => {
   dt.items.add(file);
   imageInput.files = dt.files;
   displayInputPreview();
+});
+
+/* ---------- Lightbox wiring ------------------------------------------ */
+
+outputImage.addEventListener("click", () => {
+  if (outputImage.hidden || !currentOutputUrl) return;
+  openLightbox(currentOutputUrl);
+});
+
+lightboxClose.addEventListener("click", closeLightbox);
+lightbox.addEventListener("click", (event) => {
+  if (event.target === lightbox) {
+    closeLightbox();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !lightbox.hidden) {
+    event.preventDefault();
+    closeLightbox();
+  }
+});
+
+/* ---------- Cmd/Ctrl+Enter to submit --------------------------------- */
+
+promptInput.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    event.preventDefault();
+    if (!isBusy) {
+      chatForm.requestSubmit();
+    }
+  }
 });
 
 function buildSpatialPrompt() {
@@ -543,6 +829,30 @@ async function pollGpu() {
   }
 }
 
+function truncate(text, limit) {
+  if (!text) return "";
+  const clean = String(text).replace(/\s+/g, " ").trim();
+  return clean.length > limit ? `${clean.slice(0, limit - 1).trimEnd()}…` : clean;
+}
+
+function formatHistoryTooltip(filename, meta) {
+  if (!meta) return filename;
+  const lines = [];
+  if (meta.prompt) lines.push(meta.prompt);
+  const stats = [];
+  if (meta.seed !== undefined && meta.seed !== null) stats.push(`seed ${meta.seed}`);
+  if (meta.steps) stats.push(`${meta.steps} steps`);
+  if (meta.cfg !== undefined && meta.cfg !== null) stats.push(`cfg ${Number(meta.cfg).toFixed(1)}`);
+  if (meta.width && meta.height) stats.push(`${meta.width}×${meta.height}`);
+  if (stats.length) lines.push(stats.join(" · "));
+  if (meta.when) {
+    const d = new Date(meta.when);
+    if (!Number.isNaN(d.getTime())) lines.push(d.toLocaleString());
+  }
+  lines.push(filename);
+  return lines.join("\n");
+}
+
 async function loadHistory() {
   try {
     const response = await fetch("/api/history");
@@ -552,19 +862,23 @@ async function loadHistory() {
       return;
     }
 
+    const meta = loadHistoryMeta();
+
     historyGrid.innerHTML = "";
     for (const item of items) {
       const card = document.createElement("button");
       card.type = "button";
       card.className = "history-item";
 
+      const info = meta[item.name];
+      card.title = formatHistoryTooltip(item.name, info);
+
       const img = document.createElement("img");
       img.src = item.url;
-      img.alt = item.name;
+      img.alt = info?.prompt ? truncate(info.prompt, PROMPT_TOOLTIP_MAX) : item.name;
 
       const caption = document.createElement("p");
-      caption.title = item.name;
-      caption.textContent = item.name;
+      caption.textContent = info?.prompt ? truncate(info.prompt, PROMPT_TOOLTIP_MAX) : item.name;
 
       card.appendChild(img);
       card.appendChild(caption);
@@ -665,8 +979,16 @@ chatForm.addEventListener("submit", async (event) => {
   const rewriteRequested = rewritePromptInput.checked && spatialMode === "none";
 
   setBusy(true);
-  elapsedLabel.textContent = "Running…";
   const startedAt = performance.now();
+
+  // Live timer — tick every 100ms so the user sees progress instead of a
+  // motionless "Running…" label. Cleared in `finally` below.
+  elapsedLabel.classList.add("is-running");
+  elapsedLabel.textContent = "Running · 0.0s";
+  const timerHandle = setInterval(() => {
+    const secs = ((performance.now() - startedAt) / 1000).toFixed(1);
+    elapsedLabel.textContent = `Running · ${secs}s`;
+  }, 100);
 
   // Capture the prompt we're actually sending so we can diff against the
   // server's (possibly-rewritten) reply afterwards.
@@ -705,10 +1027,28 @@ chatForm.addEventListener("submit", async (event) => {
     }
     pushLog(`Done in ${result.elapsed_seconds}s.`);
     pushLog(`Saved output: ${result.output_url}`);
+
+    // Persist prompt/seed/cfg/steps alongside the filename so the history
+    // thumbnails can show rich tooltips instead of an opaque filename.
+    recordHistoryMeta(result.output_url, {
+      prompt: finalPrompt || submittedPrompt,
+      submittedPrompt,
+      seed: result.seed ?? Number(seedInput.value),
+      steps: Number(stepsInput.value),
+      cfg: Number(guidanceInput.value),
+      baseSize: Number(baseSizeInput.value),
+      height: Number(heightInput.value),
+      width: Number(widthInput.value),
+      spatialMode,
+      rewriteRequested,
+    });
+
     await loadHistory();
   } catch (error) {
     pushLog(error.message || "Unknown error", true);
   } finally {
+    clearInterval(timerHandle);
+    elapsedLabel.classList.remove("is-running");
     const elapsed = ((performance.now() - startedAt) / 1000).toFixed(1);
     elapsedLabel.textContent = `${elapsed}s`;
     setBusy(false);
@@ -716,7 +1056,16 @@ chatForm.addEventListener("submit", async (event) => {
   }
 });
 
+// Persist form state: save on any user edit (debounced), restore on load.
+for (const [, el] of PERSISTED_FIELDS) {
+  if (!el) continue;
+  const eventName = el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input";
+  el.addEventListener(eventName, scheduleSaveFormState);
+}
+
+restoreFormState();
 updateSpatialUI();
+updateMatchAspectButton();
 pollStatus();
 pollGpu();
 loadHistory();

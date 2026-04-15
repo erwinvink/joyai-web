@@ -188,11 +188,14 @@
               <button type="button" id="randomSeedBtn" class="btn btn-outline btn-ghost">Random</button>
             </div>
           </label>
-          <label class="control">
-            <span>Negative prompt</span>
+          <details class="control control-details">
+            <summary>
+              <span class="summary-label">Negative prompt</span>
+              <span class="summary-hint">rarely needed</span>
+            </summary>
             <textarea id="negPromptInput" rows="2" placeholder="e.g. blurry, extra fingers, text, low quality"></textarea>
             <small class="help-text help-inline">What the model should <em>avoid</em>. Used as the negative branch of classifier-free guidance.</small>
-          </label>
+          </details>
           <label class="control">
             <span>Base size</span>
             <select id="baseSizeInput">
@@ -212,6 +215,10 @@
               <input id="widthInput" type="number" min="128" max="2048" value="1024" />
             </label>
           </div>
+          <div class="control-row aspect-row">
+            <button type="button" id="matchAspectBtn" class="btn btn-outline btn-ghost" disabled title="Snap width and height to the input image's aspect ratio">Match input aspect</button>
+            <span id="aspectHint" class="help-text help-inline aspect-hint" hidden></span>
+          </div>
           <div id="rewriteGroup">
             <label class="control checkbox">
               <input id="rewritePromptInput" type="checkbox" checked />
@@ -227,6 +234,15 @@
       <span class="foot-dot">·</span>
       <span class="foot-text">Served locally via FastAPI</span>
     </footer>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Output preview">
+    <button type="button" id="lightboxClose" class="lightbox-close" aria-label="Close preview">
+      <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+        <path d="M4 4 l10 10 M14 4 l-10 10"/>
+      </svg>
+    </button>
+    <img id="lightboxImage" alt="Generated output (enlarged)" />
   </div>
 
   <script src="/static/main.js"></script>
