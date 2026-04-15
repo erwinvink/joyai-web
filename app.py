@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import datetime as dt
+import importlib.util
 import io
 import os
 import subprocess
@@ -46,6 +47,10 @@ model_device: str | None = None
 model_error: str | None = None
 inference_lock = asyncio.Lock()
 dist_initialized = False
+
+
+class PromptRewriteUnavailable(RuntimeError):
+    """Raised when LLM prompt rewriting is requested but not usable."""
 
 
 def parse_args() -> argparse.Namespace:
@@ -453,6 +458,34 @@ def _read_gpu_status() -> dict[str, Any]:
     return {"available": True, "gpus": gpus}
 
 
+def _get_prompt_rewrite_status() -> dict[str, Any]:
+    openai_installed = importlib.util.find_spec("openai") is not None
+    api_key_configured = bool(os.environ.get("OPENAI_API_KEY"))
+
+    message = None
+    if not openai_installed:
+        message = (
+            "Prompt rewrite requires the `openai` Python package. "
+            "Install it with `uv pip install openai`."
+        )
+    elif not api_key_configured:
+        message = "Prompt rewrite requires OPENAI_API_KEY."
+
+    return {
+        "available": openai_installed and api_key_configured,
+        "openai_installed": openai_installed,
+        "api_key_configured": api_key_configured,
+        "message": message,
+    }
+
+
+def _ensure_prompt_rewrite_available() -> None:
+    status = _get_prompt_rewrite_status()
+    if status["available"]:
+        return
+    raise PromptRewriteUnavailable(status["message"] or "Prompt rewrite is unavailable.")
+
+
 def _run_local_inference(task: dict[str, Any]) -> dict[str, Any]:
     from infer_runtime.model import InferenceParams
 
@@ -572,6 +605,7 @@ async def api_status() -> dict[str, Any]:
         "rank": get_rank(),
         "world_size": get_world_size(),
         "distributed": is_distributed(),
+        "rewrite_prompt": _get_prompt_rewrite_status(),
     }
 
 
@@ -617,12 +651,19 @@ async def api_edit(
     if not original_prompt:
         raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
 
+    rewrite_enabled = bool(rewrite_prompt)
+    if rewrite_enabled:
+        try:
+            _ensure_prompt_rewrite_available()
+        except PromptRewriteUnavailable as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     async with inference_lock:
         try:
             effective_prompt = model.maybe_rewrite_prompt(
                 original_prompt,
                 pil_image,
-                enabled=bool(rewrite_prompt),
+                enabled=rewrite_enabled,
             )
             output_filename = f"{uuid.uuid4().hex}.png"
             task = {
@@ -656,7 +697,7 @@ async def api_edit(
                 "basesize": basesize,
                 "height": height,
                 "width": width,
-                "rewrite_prompt": bool(rewrite_prompt),
+                "rewrite_prompt": rewrite_enabled,
                 "has_input_image": pil_image is not None,
             },
         }
