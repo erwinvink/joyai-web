@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap">
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=2" />
 </head>
 <body>
   <div class="app-shell">
@@ -25,7 +25,7 @@
     </header>
 
     <main class="layout">
-      <section class="workbench">
+      <section id="workbench" class="workbench">
         <section class="canvas-block">
           <div class="image-grid">
             <article class="image-card image-card-input">
@@ -85,14 +85,99 @@
           </div>
         </section>
 
-        <section class="prompt-block">
+        <section class="mode-block">
+          <div class="mode-bar">
+            <label class="mode-field">
+              <span class="mode-field-label">Mode</span>
+              <select id="spatialModeInput" class="mode-select">
+                <option value="none" selected>Free Edit</option>
+                <option value="move">Object Move</option>
+                <option value="rotate">Object Rotation</option>
+                <option value="camera">Camera Control</option>
+                <option value="t2i">Text to Image</option>
+              </select>
+            </label>
+
+            <div class="mode-inputs">
+              <label class="mode-field" id="spatialObjectGroup" hidden>
+                <span class="mode-field-label">Object</span>
+                <input id="spatialObjectInput" type="text" placeholder="e.g. apple" />
+              </label>
+              <label class="mode-field" id="spatialViewGroup" hidden>
+                <span class="mode-field-label">View</span>
+                <select id="spatialViewInput">
+                  <option value="front">front</option>
+                  <option value="right" selected>right</option>
+                  <option value="left">left</option>
+                  <option value="rear">rear</option>
+                  <option value="front right">front right</option>
+                  <option value="front left">front left</option>
+                  <option value="rear right">rear right</option>
+                  <option value="rear left">rear left</option>
+                </select>
+              </label>
+              <div id="spatialCameraGroup" class="mode-camera-group" hidden>
+                <label class="mode-field">
+                  <span class="mode-field-label">Yaw°</span>
+                  <input id="cameraYawInput" type="number" min="-180" max="180" step="1" value="45" />
+                </label>
+                <label class="mode-field">
+                  <span class="mode-field-label">Pitch°</span>
+                  <input id="cameraPitchInput" type="number" min="-90" max="90" step="1" value="0" />
+                </label>
+                <label class="mode-field">
+                  <span class="mode-field-label">Zoom</span>
+                  <select id="cameraZoomInput">
+                    <option value="in">in</option>
+                    <option value="out">out</option>
+                    <option value="unchanged" selected>unchanged</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="mode-bar-right">
+              <div class="popover-host">
+                <button type="button" id="sizeBtn" class="chip-btn" aria-haspopup="true" aria-expanded="false">
+                  <span class="chip-label">Size</span>
+                  <span id="sizeBtnValue" class="chip-value">1024</span>
+                  <span class="chip-caret">▾</span>
+                </button>
+                <div id="sizePopover" class="popover popover-right" hidden role="dialog" aria-label="Size settings"></div>
+              </div>
+
+              <div class="popover-host">
+                <button type="button" id="presetBtn" class="chip-btn" aria-haspopup="true" aria-expanded="false" title="Presets">
+                  <span class="chip-icon" aria-hidden="true">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+                      <circle cx="9" cy="9" r="2.5"/>
+                      <path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.6 3.6l1.4 1.4M13 13l1.4 1.4M3.6 14.4l1.4-1.4M13 5l1.4-1.4"/>
+                    </svg>
+                  </span>
+                  <span id="presetBtnValue" class="chip-value">Default</span>
+                  <span class="chip-caret">▾</span>
+                </button>
+                <div id="presetPopover" class="popover popover-right" hidden role="dialog" aria-label="Presets"></div>
+              </div>
+            </div>
+          </div>
+
+          <p id="spatialModeHelp" class="help-text mode-help"></p>
+
           <form id="chatForm" class="chat-form">
             <textarea id="promptInput" rows="3" placeholder="e.g. replace the sofa with a bronze velvet chaise, keep the morning light…" required></textarea>
+            <div id="promptDirtyRow" class="prompt-dirty-row" hidden>
+              <button type="button" id="resetPromptBtn" class="link-btn">Prompt edited — reset from template</button>
+            </div>
+            <div class="neg-prompt-row">
+              <input id="negPromptInput" type="text" placeholder="Negative prompt (things to avoid — e.g. blurry, extra fingers)" />
+            </div>
             <div class="chat-actions">
               <span id="elapsed" class="status-label">Ready</span>
-              <button type="submit" id="runBtn" class="btn btn-primary btn-run">Run edit</button>
+              <button type="submit" id="runBtn" class="btn btn-primary btn-run">Run</button>
             </div>
           </form>
+
           <div id="chatLog" class="chat-log" aria-live="polite" aria-label="Activity log"></div>
         </section>
 
@@ -100,133 +185,6 @@
           <div id="historyGrid" class="history-grid">No outputs yet.</div>
         </section>
       </section>
-
-      <aside class="sidebar">
-        <section class="tool-block">
-          <h3>Spatial editing</h3>
-          <label class="control">
-            <span>Mode</span>
-            <select id="spatialModeInput">
-              <option value="none" selected>Free Edit</option>
-              <option value="move">Object Move</option>
-              <option value="rotate">Object Rotation</option>
-              <option value="camera">Camera Control</option>
-            </select>
-          </label>
-          <p id="spatialModeHelp" class="help-text">
-            Use Free Edit for ordinary prompt-based changes. The modes below follow JoyAI's documented spatial prompt patterns.
-          </p>
-          <label id="spatialObjectGroup" class="control" hidden>
-            <span>Target object</span>
-            <input id="spatialObjectInput" type="text" placeholder="e.g. table in the middle" />
-          </label>
-          <div id="spatialGuideHelp" class="help-text" hidden>
-            Object Move requires a red box drawn on the input image. The frontend will burn that box into the uploaded image.
-          </div>
-          <label id="spatialViewGroup" class="control" hidden>
-            <span>Target view</span>
-            <select id="spatialViewInput">
-              <option value="front">front</option>
-              <option value="right" selected>right</option>
-              <option value="left">left</option>
-              <option value="rear">rear</option>
-              <option value="front right">front right</option>
-              <option value="front left">front left</option>
-              <option value="rear right">rear right</option>
-              <option value="rear left">rear left</option>
-            </select>
-          </label>
-          <div id="spatialCameraGroup" hidden>
-            <label class="control">
-              <span>Yaw</span>
-              <input id="cameraYawInput" type="number" min="-180" max="180" step="1" value="45" />
-            </label>
-            <label class="control">
-              <span>Pitch</span>
-              <input id="cameraPitchInput" type="number" min="-90" max="90" step="1" value="0" />
-            </label>
-            <label class="control">
-              <span>Zoom</span>
-              <select id="cameraZoomInput">
-                <option value="in">in</option>
-                <option value="out">out</option>
-                <option value="unchanged" selected>unchanged</option>
-              </select>
-            </label>
-          </div>
-          <div id="spatialTemplateGroup" hidden>
-            <label class="control">
-              <span>Template preview</span>
-              <textarea id="spatialPromptPreview" class="prompt-preview" rows="4" readonly></textarea>
-            </label>
-            <div class="control-row">
-              <button type="button" id="applySpatialPromptBtn" class="btn btn-secondary btn-ghost">Use template</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="tool-block">
-          <h3>Diffusion</h3>
-          <label class="control">
-            <span>Steps</span>
-            <div class="control-row">
-              <input id="stepsInput" type="range" min="1" max="120" step="1" value="50" />
-              <output id="stepsValue">50</output>
-            </div>
-          </label>
-          <label class="control">
-            <span>Guidance scale</span>
-            <div class="control-row">
-              <input id="guidanceInput" type="range" min="1" max="20" step="0.5" value="5" />
-              <output id="guidanceValue">5.0</output>
-            </div>
-          </label>
-          <label class="control">
-            <span>Seed</span>
-            <div class="control-row">
-              <input id="seedInput" type="number" min="0" value="42" />
-              <button type="button" id="randomSeedBtn" class="btn btn-outline btn-ghost">Random</button>
-            </div>
-          </label>
-          <details class="control control-details">
-            <summary>
-              <span class="summary-label">Negative prompt</span>
-              <span class="summary-hint">rarely needed</span>
-            </summary>
-            <textarea id="negPromptInput" rows="2" placeholder="e.g. blurry, extra fingers, text, low quality"></textarea>
-            <small class="help-text help-inline">What the model should <em>avoid</em>. Used as the negative branch of classifier-free guidance.</small>
-          </details>
-          <label class="control">
-            <span>Base size</span>
-            <select id="baseSizeInput">
-              <option>256</option>
-              <option>512</option>
-              <option>768</option>
-              <option selected>1024</option>
-            </select>
-          </label>
-          <div class="control-pair">
-            <label class="control">
-              <span>Height</span>
-              <input id="heightInput" type="number" min="128" max="2048" value="1024" />
-            </label>
-            <label class="control">
-              <span>Width</span>
-              <input id="widthInput" type="number" min="128" max="2048" value="1024" />
-            </label>
-          </div>
-          <div class="control-row aspect-row">
-            <button type="button" id="matchAspectBtn" class="btn btn-outline btn-ghost" disabled title="Snap width and height to the input image's aspect ratio">Match input aspect</button>
-            <span id="aspectHint" class="help-text help-inline aspect-hint" hidden></span>
-          </div>
-          <div id="rewriteGroup">
-            <label class="control checkbox">
-              <input id="rewritePromptInput" type="checkbox" checked />
-              <span>Rewrite prompt (LLM)</span>
-            </label>
-          </div>
-        </section>
-      </aside>
     </main>
 
     <footer class="app-foot">
@@ -234,6 +192,77 @@
       <span class="foot-dot">·</span>
       <span class="foot-text">Served locally via FastAPI</span>
     </footer>
+  </div>
+
+  <!-- Slide-over panel: edit presets (full CRUD) -->
+  <div id="presetPanel" class="preset-panel" hidden role="dialog" aria-modal="false" aria-label="Edit presets">
+    <div class="preset-panel-inner">
+      <header class="preset-panel-head">
+        <h3>Presets</h3>
+        <button type="button" id="presetPanelClose" class="btn-icon btn-outline" aria-label="Close">
+          <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+            <path d="M4 4 l10 10 M14 4 l-10 10"/>
+          </svg>
+        </button>
+      </header>
+      <div class="preset-panel-body">
+        <aside class="preset-list-pane">
+          <ul id="presetList" class="preset-list"></ul>
+          <button type="button" id="presetNewBtn" class="btn btn-outline btn-ghost">+ New preset</button>
+          <button type="button" id="presetResetBtn" class="btn btn-outline btn-ghost">Reset to factory</button>
+        </aside>
+        <section class="preset-edit-pane">
+          <div id="presetEditForm" class="preset-edit-form">
+            <label class="control">
+              <span>Name</span>
+              <input id="pe_name" type="text" />
+            </label>
+            <label class="control">
+              <span>Steps</span>
+              <div class="control-row">
+                <input id="pe_steps" type="range" min="1" max="120" step="1" value="50" />
+                <output id="pe_stepsValue">50</output>
+              </div>
+            </label>
+            <label class="control">
+              <span>Guidance scale</span>
+              <div class="control-row">
+                <input id="pe_guidance" type="range" min="1" max="20" step="0.5" value="5" />
+                <output id="pe_guidanceValue">5.0</output>
+              </div>
+            </label>
+            <label class="control">
+              <span>Base size (edit mode)</span>
+              <select id="pe_basesize">
+                <option>256</option>
+                <option>512</option>
+                <option>768</option>
+                <option selected>1024</option>
+              </select>
+            </label>
+            <fieldset class="control control-fieldset">
+              <legend>Seed</legend>
+              <label class="checkbox">
+                <input id="pe_randomSeed" type="checkbox" />
+                <span>Randomize each run</span>
+              </label>
+              <div class="control-row">
+                <input id="pe_seed" type="number" min="0" value="42" />
+              </div>
+            </fieldset>
+            <label class="checkbox">
+              <input id="pe_rewrite" type="checkbox" checked />
+              <span>Rewrite prompt (LLM)</span>
+            </label>
+            <div class="preset-actions">
+              <button type="button" id="pe_setDefault" class="btn btn-outline btn-ghost">Set as default</button>
+              <button type="button" id="pe_duplicate" class="btn btn-outline btn-ghost">Duplicate</button>
+              <button type="button" id="pe_delete" class="btn btn-outline btn-ghost">Delete</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   </div>
 
   <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Output preview">
@@ -245,6 +274,6 @@
     <img id="lightboxImage" alt="Generated output (enlarged)" />
   </div>
 
-  <script src="/static/main.js"></script>
+  <script src="/static/main.js?v=2"></script>
 </body>
 </html>

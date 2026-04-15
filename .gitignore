@@ -7,3 +7,5 @@ uploads/
 .venv/
 .venv310/
 .playwright-mcp/
+.claude/
+*.png
