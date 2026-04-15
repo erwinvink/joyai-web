@@ -47,6 +47,7 @@ model_device: str | None = None
 model_error: str | None = None
 inference_lock = asyncio.Lock()
 dist_initialized = False
+control_group: Any = None
 
 
 class PromptRewriteUnavailable(RuntimeError):
@@ -91,6 +92,7 @@ def is_distributed() -> bool:
 
 
 def maybe_init_distributed() -> bool:
+    global control_group
     world_size = get_world_size()
     if world_size <= 1:
         return False
@@ -103,7 +105,25 @@ def maybe_init_distributed() -> bool:
         rank=rank,
         timeout=dt.timedelta(hours=12),
     )
+    # Keep request/control messages off the NCCL process group. With NCCL,
+    # the non-HTTP worker can spin a GPU at 100% while blocked in an unmatched
+    # object broadcast waiting for rank 0's next request.
+    control_group = dist.new_group(backend="gloo", timeout=dt.timedelta(hours=12))
     return True
+
+
+def get_control_group() -> Any:
+    return control_group
+
+
+def destroy_control_group() -> None:
+    global control_group
+    if control_group is None:
+        return
+    try:
+        dist.destroy_process_group(control_group)
+    finally:
+        control_group = None
 
 
 def resolve_device() -> torch.device:
@@ -539,7 +559,7 @@ def _gather_statuses(local_status: dict[str, Any]) -> list[dict[str, Any]]:
     if not is_distributed():
         return [local_status]
     statuses: list[dict[str, Any] | None] = [None] * get_world_size()
-    dist.all_gather_object(statuses, local_status)
+    dist.all_gather_object(statuses, local_status, group=get_control_group())
     return [status for status in statuses if status is not None]
 
 
@@ -557,7 +577,7 @@ def _raise_for_failed_statuses(statuses: list[dict[str, Any]]) -> None:
 def _execute_rank0_task(task: dict[str, Any]) -> dict[str, Any]:
     if is_distributed():
         payload = [task]
-        dist.broadcast_object_list(payload, src=0)
+        dist.broadcast_object_list(payload, src=0, group=get_control_group())
 
     local_status = _run_task_with_status(task)
     statuses = _gather_statuses(local_status)
@@ -571,7 +591,7 @@ def _worker_loop() -> None:
 
     while True:
         payload: list[dict[str, Any] | None] = [None]
-        dist.broadcast_object_list(payload, src=0)
+        dist.broadcast_object_list(payload, src=0, group=get_control_group())
         task = payload[0] or {"command": "shutdown"}
         local_status = _run_task_with_status(task)
         _gather_statuses(local_status)
@@ -752,6 +772,7 @@ if __name__ == "__main__":
             _broadcast_shutdown()
         finally:
             if dist_initialized:
+                destroy_control_group()
                 from modules.utils import clean_dist_env
 
                 clean_dist_env()
